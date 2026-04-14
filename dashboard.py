@@ -6,35 +6,85 @@ import os
 import time
 
 # 1. Configurazione Iniziale
-st.set_page_config(page_title="Alpha Intelligence Terminal", layout="wide")
+st.set_page_config(page_title="Alpha Intelligence Terminal", layout="wide", initial_sidebar_state="expanded")
 HISTORY_FILE = "alpha_tracker_final.csv"
 
 if 'scan_results' not in st.session_state:
     st.session_state['scan_results'] = []
 
-# 2. Liste Mercati Ripristinate
+# 2. Liste Mercati
 MARKETS = {
     "🇺🇸 USA (S&P 100)": {"tickers": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "JPM", "V", "PG", "COST"], "index": "^GSPC"},
     "🇪🇺 Europa (Blue Chips)": {"tickers": ["ENI.MI", "UCG.MI", "ISP.MI", "MC.PA", "OR.PA", "ASML", "SAP", "SIE.DE", "TTE.PA"], "index": "^STOXX50E"}
 }
 
-# 3. CSS per Massimo Contrasto (Ticker Bianchi)
+# 3. CSS AVANZATO: "Cyber-Finance Black"
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; background-color: #050505; color: #ffffff; }
-    .main { background-color: #050505; }
-    .opportunity-card {
-        background: linear-gradient(135deg, #111111 0%, #1a1a1a 100%);
-        border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 15px;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+    /* Sfondo e Font Generale */
+    html, body, [data-testid="stAppViewContainer"] {
+        background-color: #050505;
+        font-family: 'Inter', sans-serif;
+        color: #E0E0E0;
     }
-    .metric-label { color: #aaaaaa; font-size: 11px; text-transform: uppercase; }
-    .metric-value { color: #ffffff; font-size: 20px; font-weight: bold; }
-    .badge-buy { background-color: #00c805; color: black; padding: 4px 10px; border-radius: 10px; font-weight: bold; }
+
+    /* Nascondere Header/Footer Streamlit per Look Pro */
+    header, footer {visibility: hidden;}
+
+    /* Styling delle Tab */
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; background-color: transparent; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px; white-space: pre-wrap; background-color: transparent;
+        border-radius: 4px 4px 0px 0px; border: none; color: #888; font-weight: 400;
+    }
+    .stTabs [aria-selected="true"] { color: #00FF88 !important; border-bottom: 2px solid #00FF88 !important; font-weight: 700 !important; }
+
+    /* CARD DESIGN: Glassmorphism */
+    .opportunity-card {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    .opportunity-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
+        transform: translateY(-4px);
+    }
+
+    /* Tipografia e Badge */
+    .company-title { font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.5px; }
+    .ticker-box {
+        background: #1A1A1A; color: #00FF88; padding: 3px 10px; border-radius: 6px;
+        font-family: 'Space Grotesk', sans-serif; font-size: 14px; border: 1px solid #333; margin-left: 10px;
+    }
+    .badge-buy {
+        background: linear-gradient(135deg, #00FF88 0%, #00BD65 100%);
+        color: #000; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Metriche */
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px; }
+    .m-item { border-left: 1px solid #333; padding-left: 15px; }
+    .m-label { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .m-value { color: #FFF; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; }
+
+    /* Bottoni Custom */
+    div.stButton > button {
+        background: #111; color: #EEE; border: 1px solid #333; border-radius: 8px;
+        padding: 8px 20px; font-weight: 600; transition: 0.3s;
+    }
+    div.stButton > button:hover { border-color: #00FF88; color: #00FF88; background: #000; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNZIONI CORE ---
+# --- FUNZIONI CORE (TUA LOGICA ORIGINALE) ---
 def load_history():
     if os.path.exists(HISTORY_FILE): return pd.read_csv(HISTORY_FILE)
     return pd.DataFrame(columns=["Data", "Ticker", "Prezzo_In", "Prezzo_Attuale", "Perf_Stock", "Perf_Bench", "Alpha", "Score", "Status", "Index"])
@@ -56,14 +106,15 @@ def analyze_stock(symbol):
 
 # --- INTERFACCIA ---
 st.title("🏛️ Alpha Intelligence Terminal")
-tab1, tab2 = st.tabs(["🔍 Screener Mercati", "📊 Registro & Stress Test"])
+
+tab1, tab2 = st.tabs(["🔍 SCREENER MERCATI", "📊 REGISTRO & STRESS TEST"])
 
 with tab1:
-    col1, col2 = st.columns([2, 1])
-    m_choice = col1.selectbox("Seleziona Mercato", list(MARKETS.keys()))
-    threshold = col2.slider("Score minimo", 1, 4, 3)
+    col_a, col_b = st.columns([2, 1])
+    m_choice = col_a.selectbox("Seleziona Mercato", list(MARKETS.keys()))
+    threshold = col_b.slider("Filtra per Score minimo", 1, 4, 3)
 
-    if st.button("AVVIA SCANSIONE"):
+    if st.button("AVVIA SCANSIONE SISTEMA"):
         st.session_state['scan_results'] = []
         progress = st.progress(0)
         temp_res = []
@@ -81,16 +132,16 @@ with tab1:
             <div class="opportunity-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span style="color: #ffffff; font-size: 22px; font-weight: bold;">{d['Nome']}</span> 
-                        <span style="color: #ffffff; font-size: 18px; margin-left:10px; border: 1px solid #444; padding: 2px 6px; border-radius: 4px;">{d['Ticker']}</span>
+                        <span class="company-title">{d['Nome']}</span>
+                        <span class="ticker-box">{d['Ticker']}</span>
                     </div>
-                    <span class="badge-buy">SCORE: {d['Score']}/4</span>
+                    <span class="badge-buy">SCORE {d['Score']} / 4</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 15px;">
-                    <div class="metric-item"><p class="metric-label">Prezzo</p><p class="metric-value">{d['Price']} $</p></div>
-                    <div class="metric-item"><p class="metric-label">Target</p><p class="metric-value" style="color:#00c805;">{d['Target']} $</p></div>
-                    <div class="metric-item"><p class="metric-label">P/E Ratio</p><p class="metric-value">{d['PE']}</p></div>
-                    <div class="metric-item"><p class="metric-label">ROE</p><p class="metric-value">{d['ROE']}</p></div>
+                <div class="metric-grid">
+                    <div class="m-item"><div class="m-label">Prezzo</div><div class="m-value">$ {d['Price']}</div></div>
+                    <div class="m-item"><div class="m-label">Target</div><div class="m-value" style="color:#00FF88;">$ {d['Target']}</div></div>
+                    <div class="m-item"><div class="m-label">P/E Ratio</div><div class="m-value">{d['PE']}</div></div>
+                    <div class="m-item"><div class="m-label">ROE</div><div class="m-value">{d['ROE']}</div></div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -100,14 +151,14 @@ with tab1:
                     new_row = {"Data": datetime.date.today(), "Ticker": d['Ticker'], "Prezzo_In": d['Price'], "Prezzo_Attuale": d['Price'], 
                                "Perf_Stock": "0%", "Perf_Bench": "0%", "Alpha": "0%", "Score": d['Score'], "Status": "OK", "Index": MARKETS[m_choice]["index"]}
                     pd.concat([df, pd.DataFrame([new_row])]).to_csv(HISTORY_FILE, index=False)
-                    st.toast(f"{d['Ticker']} Salvato!")
+                    st.toast(f"System: {d['Ticker']} registrato.")
 
 with tab2:
-    st.subheader("Performance vs Mercato & Stress Test")
+    st.subheader("Performance Intelligence")
     df_h = load_history()
     if not df_h.empty:
-        if st.button("🚀 ESEGUI ANALISI PERFORMANCE & STRESS TEST"):
-            with st.spinner("Calcolo Alpha e verifica fondamentali..."):
+        if st.button("🚀 ESEGUI STRESS TEST & ANALISI ALPHA"):
+            with st.spinner("Aggiornamento dati in corso..."):
                 for idx, row in df_h.iterrows():
                     stock_data = analyze_stock(row['Ticker'])
                     if stock_data:
@@ -126,4 +177,4 @@ with tab2:
 
         st.data_editor(df_h, use_container_width=True, hide_index=True)
     else:
-        st.info("Esegui una scansione e salva i titoli per vederli qui.")
+        st.info("Nessun titolo in monitoraggio attivo.")
